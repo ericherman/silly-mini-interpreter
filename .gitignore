@@ -1,0 +1,7 @@
+*.tar.gz
+.*.swp
+.*.swo
+*.bs
+*.o
+*.so
+interp
