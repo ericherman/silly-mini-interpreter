@@ -112,7 +112,10 @@ execute(interpreter_state_t *interp)
   const uint32_t program_start_offset = ipos;
 
   uint32_t *memory = (uint32_t *)calloc(memsize, sizeof(uint32_t));
-  /* todo check for malloc error */
+  if (memory == 0) {
+    interp->error = "malloc failed";
+    return;
+  }
 
   // todo consider registers?
   // todo convert to computed goto
