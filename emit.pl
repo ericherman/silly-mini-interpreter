@@ -123,7 +123,7 @@ sub make_jump_target {
 
 my $mem_size = 1000;
 
-addconst(0, 100);
+addconst(0, 100000000);
 my $loop_lbl = make_jump_target();
 addconst(1, 2);
 subconst(0, 1);

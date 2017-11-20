@@ -6,8 +6,8 @@
 #define STMT_START do 
 #define STMT_END  while (0)
 
-#define TRACING 1
-#define DEBUGGING 1
+#define TRACING 0
+#define DEBUGGING 0
 
 #if TRACING
 #  define TRACE(...) fprintf(stderr, __VA_ARGS__)
@@ -82,14 +82,18 @@ read_32bit_int(const uint8_t *data)
 {
   return (int32_t)data[0] | ((int32_t)data[1] << 8) | ((int32_t)data[2] << 16) + ((int32_t)data[3] << 24);
 }
-#define READ_INT(out, bytecode, pos) STMT_START {out = read_32bit_int(bytecode+pos); pos += 4; } STMT_END
+// Assumes little endian:
+#define READ_INT(out, bytecode, pos) STMT_START {out = *(int32_t *)(bytecode+pos); pos += 4; } STMT_END
+//#define READ_INT(out, bytecode, pos) STMT_START {out = read_32bit_int(bytecode+pos); pos += 4; } STMT_END
 
 static inline uint32_t
 read_32bit_uint(const uint8_t *data)
 {
   return (uint32_t)data[0] | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) + ((uint32_t)data[3] << 24);
 }
-#define READ_UINT(out, bytecode, pos) STMT_START {out = read_32bit_uint(bytecode+pos); pos += 4; } STMT_END
+// Assumes little endian:
+#define READ_UINT(out, bytecode, pos) STMT_START {out = *(uint32_t *)(bytecode+pos); pos += 4; } STMT_END
+//#define READ_UINT(out, bytecode, pos) STMT_START {out = read_32bit_uint(bytecode+pos); pos += 4; } STMT_END
 
 void
 execute(interpreter_state_t *interp)
@@ -108,8 +112,10 @@ execute(interpreter_state_t *interp)
   const uint32_t program_start_offset = ipos;
 
   uint32_t *memory = (uint32_t *)calloc(memsize, sizeof(uint32_t));
-  /* todo check for error */
+  /* todo check for malloc error */
 
+  // todo consider registers?
+  // todo convert to computed goto
   while (ipos < len) {
     const uint8_t cmd = bytecode[ipos++];
     switch (cmd) {
