@@ -5,23 +5,7 @@ use Scalar::Util qw(blessed);
 use Carp ();
 
 our @Constants;
-BEGIN {
-    @Constants = qw(
-        IC_PADDING
-        IC_ADDCONST
-        IC_ADDREL
-        IC_SUBCONST
-        IC_SUBREL
-        IC_MOVCONST
-        IC_MOVREL
-        IC_MULCONST
-        IC_MULREL
-        IC_JUMP
-        IC_JUMPZ
-        IC_PRINT
-        IC_EXIT
-    );
-}
+use ASM::Enum;
 
 SCOPE: {
     our $i;
@@ -166,10 +150,14 @@ BEGIN {
          ["addrel", "uint_uint"],
          ["subconst", "uint_int"],
          ["subrel", "uint_uint"],
-         ["movconst", "uint_int"],
-         ["movrel", "uint_uint"],
          ["mulconst", "uint_int"],
          ["mulrel", "uint_uint"],
+         ["divconst", "uint_int"],
+         ["divrel", "uint_uint"],
+         ["modconst", "uint_int"],
+         ["modrel", "uint_uint"],
+         ["movconst", "uint_int"],
+         ["movrel", "uint_uint"],
          ["jumpz", "uint_uint"],
     ) {
         my ($name, $types) = @$_;
