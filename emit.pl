@@ -1,135 +1,34 @@
 #!perl
 use 5.14.2;
 use warnings;
+use Data::Dumper;
 
-SCOPE: {
-  our $x;
-  BEGIN { $x = 0; }
-  use constant {
-    map { $_ => $x++ }
-    qw(
-      IC_PADDING
-      IC_ADDCONST
-      IC_ADDREL
-      IC_SUBCONST
-      IC_SUBREL
-      IC_MOVCONST
-      IC_MOVREL
-      IC_JUMP
-      IC_JUMPZ
-      IC_PRINT
-      IC_EXIT
-    )
-  };
-  $x = undef;
-}
+use lib 'lib';
+use ASM qw(:all);
 
-my $Output = "";
+my $asm = asm {
+    memsize 1000;
 
-sub uint32 { pack("L", shift) }
-sub int32 { pack("l", shift) }
-sub uint8 { pack("C", shift) }
+    emit_addconst 0, 1e8;
 
-sub write_uint32 {
-  $Output .= uint32(shift);
-}
+    make_label 'loop_start';
+    emit_addconst 1, 2;
+    emit_subconst 0, 1;
 
-sub write_int32 {
-  $Output .= int32(shift);
-}
+    make_label 'jumpz_patch_pos', position + 1; # will need to patch jump target, so after the type byte
+    emit_jumpz 0xdeadbeef, 0;
+    emit_jump resolve_label('loop_start');
+    make_label 'done';
+    emit_print 1;
 
-sub write_uint8 {
-  $Output .= uint8(shift);
-}
+    backpatch 'jumpz_patch_pos', uint32(resolve_label('done'));
 
-sub pad {
-  my $pos = length($Output);
-  write_uint8(IC_PADDING);
-  return $pos;
-}
+    emit_exit;
+};
+warn Dumper $asm;
+print $asm->generate;
 
-sub addconst {
-  my $pos = length($Output);
-  write_uint8(IC_ADDCONST);
-  write_uint32(shift);
-  write_int32(shift);
-  return $pos;
-}
-
-sub addrel {
-  my $pos = length($Output);
-  write_uint8(IC_ADDREL);
-  write_uint32(shift);
-  write_uint32(shift);
-  return $pos;
-}
-
-sub subconst {
-  my $pos = length($Output);
-  write_uint8(IC_SUBCONST);
-  write_uint32(shift);
-  write_int32(shift);
-  return $pos;
-}
-
-sub subrel {
-  my $pos = length($Output);
-  write_uint8(IC_SUBREL);
-  write_uint32(shift);
-  write_uint32(shift);
-  return $pos;
-}
-
-sub movconst {
-  my $pos = length($Output);
-  write_uint8(IC_MOVCONST);
-  write_uint32(shift);
-  write_int32(shift);
-  return $pos;
-}
-
-sub movrel {
-  my $pos = length($Output);
-  write_uint8(IC_MOVREL);
-  write_uint32(shift);
-  write_uint32(shift);
-  return $pos;
-}
-
-sub jump {
-  my $pos = length($Output);
-  write_uint8(IC_JUMP);
-  write_uint32(shift);
-  return $pos;
-}
-
-sub jumpz {
-  my $pos = length($Output);
-  write_uint8(IC_JUMPZ);
-  write_uint32(shift);
-  write_uint32(shift);
-  return $pos;
-}
-
-sub emit_print {
-  my $pos = length($Output);
-  write_uint8(IC_PRINT);
-  write_uint32(shift);
-  return $pos;
-}
-
-sub emit_exit {
-  my $pos = length($Output);
-  write_uint8(IC_EXIT);
-  return $pos;
-}
-
-sub make_jump_target {
-  return length($Output);
-}
-
-my $mem_size = 1000;
-
+__END__
 addconst(0, 100000000);
 my $loop_lbl = make_jump_target();
 addconst(1, 2);
