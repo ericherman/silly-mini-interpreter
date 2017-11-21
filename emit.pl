@@ -5,43 +5,51 @@ use Data::Dumper;
 
 use lib 'lib';
 use ASM qw(:all);
+use ASM::Tools qw(:all);
 
-my $asm = asm {
-    memsize 1000;
+sub generate_by_hand {
+    my $asm = asm {
+        memsize 1000;
 
-    emit_addconst 0, 1e8;
+        emit_addconst 0, 1e8;
 
-    make_label 'loop_start';
-    emit_addconst 1, 2;
-    emit_subconst 0, 1;
+        make_label 'loop_start';
+        emit_addconst 1, 2;
+        emit_subconst 0, 1;
 
-    make_label 'jumpz_patch_pos', position + 1; # will need to patch jump target, so after the type byte
-    emit_jumpz 0xdeadbeef, 0;
-    emit_jump resolve_label('loop_start');
-    make_label 'done';
-    emit_print 1;
+        make_label 'jumpz_patch_pos', position + 1; # will need to patch jump target, so after the type byte
+        emit_jumpz 0xdeadbeef, 0;
+        emit_jump resolve_label('loop_start');
+        make_label 'done';
+        emit_print 1;
 
-    backpatch 'jumpz_patch_pos', uint32(resolve_label('done'));
+        backpatch 'jumpz_patch_pos', uint32(resolve_label('done'));
 
-    emit_exit;
-};
-warn Dumper $asm;
-print $asm->generate;
+        emit_exit;
+    };
 
-__END__
-addconst(0, 100000000);
-my $loop_lbl = make_jump_target();
-addconst(1, 2);
-subconst(0, 1);
+    print $asm->generate;
+}
 
-my $tmp = jumpz(2e9, 0);
-jump($loop_lbl);
-my $done_lbl = emit_print(0);
-emit_print(1);
+sub generate_with_loop {
+    my $asm = asm {
+        memsize 1000;
 
-# backpatching
-substr($Output, $tmp+1, 4, uint32($done_lbl));
+        my $loop_slot = 0;
+        emit_addconst $loop_slot, 1e8;
 
-emit_exit();
-print pack("L", $mem_size) . $Output;
+        loop {
+            loop_counter $loop_slot;
+            emit_addconst 1, 2;
+        };
+
+        emit_print 1;
+        emit_exit;
+    };
+
+    print $asm->generate;
+}
+
+#generate_by_hand();
+generate_with_loop();
 

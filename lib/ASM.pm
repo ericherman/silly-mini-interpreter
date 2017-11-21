@@ -233,6 +233,9 @@ sub make_label ($;$) {
 sub resolve_label ($) {
     my ($obj, @data) = &intuit_params;
     my $label = shift @data;
+
+    return $label if defined $label and $label =~ /^[0-9]+$/;
+
     if (not exists $obj->{labels}{$label}) {
         Carp::croak("Trying to used unknown label '$label'");
     }
