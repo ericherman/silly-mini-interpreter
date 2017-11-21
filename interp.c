@@ -81,7 +81,7 @@ typedef enum interpreter_command {
 static inline int32_t
 read_32bit_int(const uint8_t *data)
 {
-    return (int32_t)data[0] | ((int32_t)data[1] << 8) | ((int32_t)data[2] << 16) + ((int32_t)data[3] << 24);
+    return ((int32_t)data[0]) | ((int32_t)data[1] << 8) | ((int32_t)data[2] << 16) | ((int32_t)data[3] << 24);
 }
 // Assumes little endian:
 #define READ_INT(out, bytecode, pos) STMT_START {out = *(int32_t *)(bytecode+pos); pos += 4; } STMT_END
@@ -90,7 +90,7 @@ read_32bit_int(const uint8_t *data)
 static inline uint32_t
 read_32bit_uint(const uint8_t *data)
 {
-    return (uint32_t)data[0] | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) + ((uint32_t)data[3] << 24);
+    return ((uint32_t)data[0]) | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
 }
 // Assumes little endian:
 #define READ_UINT(out, bytecode, pos) STMT_START {out = *(uint32_t *)(bytecode+pos); pos += 4; } STMT_END
@@ -99,8 +99,8 @@ read_32bit_uint(const uint8_t *data)
 void
 execute(interpreter_state_t *interp)
 {
-    const char *bytecode = interp->bytecode;
-    const size_t len = interp->code_length;
+    const uint8_t *bytecode = interp->bytecode;
+
     uint32_t srcptr;
     uint32_t dstptr;
     int32_t data;
