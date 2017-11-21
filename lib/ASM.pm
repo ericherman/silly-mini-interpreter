@@ -31,9 +31,6 @@ BEGIN {
             write_int32
             write_uint8
             emit_padding
-            emit_jump
-            emit_jumpz
-            emit_print
             emit_exit
             make_label
             resolve_label
@@ -144,6 +141,21 @@ sub _emit_cmd_uint_uint {
     return $pos;
 }
 
+sub _emit_cmd_uint_uint_int {
+    my ($obj, $cmd, @data) = @_;
+    my $pos = write_uint8($cmd);
+    write_uint32(shift @data) for 1..2;
+    write_int32(shift @data);
+    return $pos;
+}
+
+sub _emit_cmd_uint_uint_uint {
+    my ($obj, $cmd, @data) = @_;
+    my $pos = write_uint8($cmd);
+    write_uint32(shift @data) for 1..3;
+    return $pos;
+}
+
 # TODO replace with proper code gen from an instruction spec at some point
 BEGIN {
     for (["addconst", "uint_int"],
@@ -158,12 +170,22 @@ BEGIN {
          ["modrel", "uint_uint"],
          ["movconst", "uint_int"],
          ["movrel", "uint_uint"],
+         ["jump", "uint"],
          ["jumpz", "uint_uint"],
+         ["jumpnz", "uint_uint"],
+         ["jumpeqconst", "uint_uint_int"],
+         ["eqconst", "uint_uint_int"],
+         ["eqrel", "uint_uint_uint"],
+         ["print", "uint"],
     ) {
         my ($name, $types) = @$_;
         my $caps = uc($name);
+        my $count =()=  $types =~ /_/g;
+        $count++;
+        my $proto = '$' x $count;
+
         my $code = qq{
-            sub emit_$name (\$\$) {
+            sub emit_$name ($proto) {
                 my (\$obj, \@data) = \&intuit_params;
                 return \$obj->_emit_cmd_$types(IC_$caps, \@data);
             }
@@ -177,16 +199,6 @@ BEGIN {
 sub emit_padding () {
     my ($obj, @data) = &intuit_params;
     return $obj->write_uint8(IC_PADDING);
-}
-
-sub emit_jump ($) {
-    my ($obj, @data) = &intuit_params;
-    return $obj->_emit_cmd_uint(IC_JUMP, @data);
-}
-
-sub emit_print ($) {
-    my ($obj, @data) = &intuit_params;
-    return $obj->_emit_cmd_uint(IC_PRINT, @data);
 }
 
 sub emit_exit () {

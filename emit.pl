@@ -38,7 +38,7 @@ sub generate_with_loop {
         my $loop_slot = 0;
         emit_addconst $loop_slot, 1e8;
 
-        loop {
+        loop_down {
             loop_counter $loop_slot;
             emit_addconst 1, 2;
         };
@@ -50,6 +50,32 @@ sub generate_with_loop {
     print $asm->generate;
 }
 
+sub generate_with_incr_loop {
+    my $asm = asm {
+        memsize 1000;
+
+        my $loop_counter = 0;
+        my $loop_target = 1;
+        my $loop_cmp = 2;
+        my $output = 3;
+        emit_addconst $loop_target, 1e8;
+
+        loop_rel_up {
+            loop_counter $loop_counter;
+            loop_target $loop_target;
+            loop_cmp $loop_cmp;
+
+            emit_addconst $output, 2;
+        };
+
+        emit_print $output;
+        emit_exit;
+    };
+
+    print $asm->generate;
+}
+
 #generate_by_hand();
-generate_with_loop();
+#generate_with_loop();
+generate_with_incr_loop();
 

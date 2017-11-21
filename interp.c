@@ -89,8 +89,9 @@ execute(interpreter_state_t *interp)
 {
     const uint8_t *bytecode = interp->bytecode;
 
-    uint32_t srcptr;
     uint32_t dstptr;
+    uint32_t srcptr;
+    uint32_t srcptr2;
     int32_t data;
 
     /* First read memory size */
@@ -110,6 +111,7 @@ execute(interpreter_state_t *interp)
 
     #define DISPATCH() goto *dispatch_table[bytecode[ipos++]]
 
+    /* TODO some way of taking input... */
     DISPATCH();
     while (1) {
         ic_padding:
@@ -186,6 +188,21 @@ execute(interpreter_state_t *interp)
             TRACE("movrel %u %u\n", dstptr, srcptr);
             memory[dstptr] = memory[srcptr];
             DISPATCH();
+        ic_eqconst:
+            READ_UINT(dstptr, bytecode, ipos);
+            READ_UINT(srcptr, bytecode, ipos);
+            READ_INT(data, bytecode, ipos);
+            TRACE("eqconst %u %u %i\n", dstptr, srcptr, data);
+            memory[dstptr] = (memory[srcptr] == data ? 1 : 0);
+            DISPATCH();
+        ic_eqrel:
+            READ_UINT(dstptr, bytecode, ipos);
+            READ_UINT(srcptr, bytecode, ipos);
+            READ_UINT(srcptr2, bytecode, ipos);
+            TRACE("eqrel %u %u %u\n", dstptr, srcptr, srcptr2);
+            memory[dstptr] = (memory[srcptr] == memory[srcptr2] ? 1 : 0);
+            TRACE("  %u %u '%u'\n", memory[srcptr], memory[srcptr2], memory[dstptr]);
+            DISPATCH();
         ic_jump:
             READ_UINT(dstptr, bytecode, ipos);
             TRACE("jump %u\n", dstptr);
@@ -198,17 +215,47 @@ execute(interpreter_state_t *interp)
             TRACE("jumpz %u %u\n", dstptr, srcptr);
             TRACE("  memory content for test: %i\n", memory[srcptr]);
             if (memory[srcptr] == 0) {
-                TRACE("Jumping to %u\n", dstptr);
+                TRACE("  Jumping to %u\n", dstptr);
                 //ipos = program_start_offset + memory[dstptr];
                 ipos = program_start_offset + dstptr;
             }
             else {
-                TRACE("Skipping\n");
+                TRACE("  Skipping\n");
+            }
+            DISPATCH();
+        ic_jumpnz:
+            READ_UINT(dstptr, bytecode, ipos);
+            READ_UINT(srcptr, bytecode, ipos);
+            TRACE("jumpnz %u %u\n", dstptr, srcptr);
+            TRACE("  memory content for test: %i\n", memory[srcptr]);
+            if (memory[srcptr]) {
+                TRACE("  Jumping to %u\n", dstptr);
+                //ipos = program_start_offset + memory[dstptr];
+                ipos = program_start_offset + dstptr;
+            }
+            else {
+                TRACE("  Skipping\n");
+            }
+            DISPATCH();
+        ic_jumpeqconst:
+            READ_UINT(dstptr, bytecode, ipos);
+            READ_UINT(srcptr, bytecode, ipos);
+            READ_INT(data, bytecode, ipos);
+            TRACE("jumpeqconst %u %u\n", dstptr, srcptr);
+            TRACE("  memory content for test: %i\n", memory[srcptr]);
+            if (memory[srcptr] == data) {
+                TRACE("  Jumping to %u\n", dstptr);
+                //ipos = program_start_offset + memory[dstptr];
+                ipos = program_start_offset + dstptr;
+            }
+            else {
+                TRACE("  Skipping\n");
             }
             DISPATCH();
         ic_print:
             READ_UINT(srcptr, bytecode, ipos);
             TRACE("print %u\n", srcptr);
+            TRACE("  '%i'\n", (int)memory[srcptr]);
             printf("%i\n", (int)memory[srcptr]);
             DISPATCH();
         ic_exit:
