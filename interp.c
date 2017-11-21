@@ -176,7 +176,7 @@ execute(interpreter_state_t *interp)
             READ_UINT(dstptr, bytecode, ipos);
             READ_UINT(srcptr, bytecode, ipos);
             TRACE("jumpz %u %u\n", dstptr, srcptr);
-            TRACE("%i\n", memory[srcptr]);
+            TRACE("  memory content for test: %i\n", memory[srcptr]);
             if (memory[srcptr] == 0) {
                 TRACE("Jumping to %u\n", dstptr);
                 //ipos = program_start_offset + memory[dstptr];
