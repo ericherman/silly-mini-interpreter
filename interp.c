@@ -74,7 +74,8 @@ typedef enum interpreter_command {
     IC_MOVREL,
     IC_JUMP,
     IC_JUMPZ,
-    IC_PRINT
+    IC_PRINT,
+    IC_EXIT
 } interpreter_command_t;
 
 static inline int32_t
@@ -118,56 +119,60 @@ execute(interpreter_state_t *interp)
     }
 
     // todo consider registers?
-    // todo convert to computed goto
+    static void* dispatch_table[20] = {
+        &&ic_padding, &&ic_addconst, &&ic_addrel, &&ic_subconst, &&ic_subrel,
+        &&ic_movconst, &&ic_movrel, &&ic_jump, &&ic_jumpz, &&ic_print, &&ic_exit
+    };
 
-    while (ipos < len) {
-        const uint8_t cmd = bytecode[ipos++];
-        switch (cmd) {
-        case IC_PADDING:
-            break;
-        case IC_ADDCONST:
+    #define DISPATCH() goto *dispatch_table[bytecode[ipos++]]
+
+    DISPATCH();
+    while (1) {
+        ic_padding:
+            DISPATCH();
+        ic_addconst:
             READ_UINT(dstptr, bytecode, ipos);
             READ_INT(data, bytecode, ipos);
             TRACE("addconst %u %i\n", dstptr, data);
             memory[dstptr] += data;
-            break;
-        case IC_ADDREL:
+            DISPATCH();
+        ic_addrel:
             READ_UINT(dstptr, bytecode, ipos);
             READ_UINT(srcptr, bytecode, ipos);
             TRACE("addrel %u %u\n", dstptr, srcptr);
             memory[dstptr] += memory[srcptr];
-            break;
-        case IC_SUBCONST:
+            DISPATCH();
+        ic_subconst:
             READ_UINT(dstptr, bytecode, ipos);
             READ_INT(data, bytecode, ipos);
             TRACE("subconst %u %i\n", dstptr, data);
             memory[dstptr] -= data;
-            break;
-        case IC_SUBREL:
+            DISPATCH();
+        ic_subrel:
             READ_UINT(dstptr, bytecode, ipos);
             READ_UINT(srcptr, bytecode, ipos);
             TRACE("subrel %u %u\n", dstptr, srcptr);
             memory[dstptr] -= memory[srcptr];
-            break;
-        case IC_MOVCONST:
+            DISPATCH();
+        ic_movconst:
             READ_UINT(dstptr, bytecode, ipos);
             READ_INT(data, bytecode, ipos);
             TRACE("movconst %u %i\n", dstptr, data);
             memory[dstptr] = data;
-            break;
-        case IC_MOVREL:
+            DISPATCH();
+        ic_movrel:
             READ_UINT(dstptr, bytecode, ipos);
             READ_UINT(srcptr, bytecode, ipos);
             TRACE("movrel %u %u\n", dstptr, srcptr);
             memory[dstptr] = memory[srcptr];
-            break;
-        case IC_JUMP:
+            DISPATCH();
+        ic_jump:
             READ_UINT(dstptr, bytecode, ipos);
             TRACE("jump %u\n", dstptr);
             //ipos = program_start_offset + memory[dstptr];
             ipos = program_start_offset + dstptr;
-            break;
-        case IC_JUMPZ:
+            DISPATCH();
+        ic_jumpz:
             READ_UINT(dstptr, bytecode, ipos);
             READ_UINT(srcptr, bytecode, ipos);
             TRACE("jumpz %u %u\n", dstptr, srcptr);
@@ -180,19 +185,19 @@ execute(interpreter_state_t *interp)
             else {
                 TRACE("Skipping\n");
             }
-            break;
-        case IC_PRINT:
+            DISPATCH();
+        ic_print:
             READ_UINT(srcptr, bytecode, ipos);
             TRACE("print %u\n", srcptr);
             printf("%i\n", (int)memory[srcptr]);
-            break;
-        default:
-            interp->error = "Invalid command in bytecode";
+            DISPATCH();
+        ic_exit:
+            TRACE("exit\n");
             free(memory);
             return;
-        }
     }
 
+    /* shouldn't actually be reached */
     free(memory);
     return;
 }

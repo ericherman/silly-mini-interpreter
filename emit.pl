@@ -18,6 +18,7 @@ SCOPE: {
       IC_JUMP
       IC_JUMPZ
       IC_PRINT
+      IC_EXIT
     )
   };
   $x = undef;
@@ -117,6 +118,12 @@ sub emit_print {
   return $pos;
 }
 
+sub emit_exit {
+  my $pos = length($Output);
+  write_uint8(IC_EXIT);
+  return $pos;
+}
+
 sub make_jump_target {
   return length($Output);
 }
@@ -136,5 +143,6 @@ emit_print(1);
 # backpatching
 substr($Output, $tmp+1, 4, uint32($done_lbl));
 
+emit_exit();
 print pack("L", $mem_size) . $Output;
 

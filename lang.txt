@@ -1,6 +1,7 @@
 
 ALL ASSUMES LITTLE ENDIAN. Other considerations later.
 (Function to interpret little endian input bytecode in endian-neutral fashion is written but unused.)
+All valid programs are terminated with an exit opcode
 
 Bytecode, 1 byte per command
 Data and indexing as signed 32bit integers only
@@ -21,4 +22,5 @@ DST/SRC: indexes into memory array, 0 indexed
 8: jumpz POS, CONDPTR (jump if memory is 0 at CONDPTR)
 # TODO indirect jumps
 9: print SRCPTR (print *SRCPTR to STDOUT + newline)
+10: exit (end program execution)
 
