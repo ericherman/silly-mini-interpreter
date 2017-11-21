@@ -14,6 +14,8 @@ BEGIN {
         IC_SUBREL
         IC_MOVCONST
         IC_MOVREL
+        IC_MULCONST
+        IC_MULREL
         IC_JUMP
         IC_JUMPZ
         IC_PRINT
@@ -31,33 +33,31 @@ SCOPE: {
     undef($i);
 }
 
-our @EXPORT_OK = (qw(
-        uint32
-        int32
-        uint8
-        asm
-        memsize
-        position
-        write_uint32
-        write_int32
-        write_uint8
-        emit_padding
-        emit_addconst
-        emit_addrel
-        emit_subconst
-        emit_subrel
-        emit_movconst
-        emit_movrel
-        emit_jump
-        emit_jumpz
-        emit_print
-        emit_exit
-        make_label
-        resolve_label
-        backpatch
-    ),
-    @Constants
-);
+our @EXPORT_OK;
+BEGIN {
+    # also added to futher down
+    push @EXPORT_OK, (qw(
+            uint32
+            int32
+            uint8
+            asm
+            memsize
+            position
+            write_uint32
+            write_int32
+            write_uint8
+            emit_padding
+            emit_jump
+            emit_jumpz
+            emit_print
+            emit_exit
+            make_label
+            resolve_label
+            backpatch
+        ),
+        @Constants
+    );
+}
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 use Exporter 'import';
@@ -137,79 +137,68 @@ sub write_uint8 ($) {
     return $pos;
 }
 
+sub _emit_cmd_uint {
+    my ($obj, $cmd, @data) = @_;
+    my $pos = write_uint8($cmd);
+    write_uint32(shift @data);
+    return $pos;
+}
+
+sub _emit_cmd_uint_int {
+    my ($obj, $cmd, @data) = @_;
+    my $pos = write_uint8($cmd);
+    write_uint32(shift @data);
+    write_int32(shift @data);
+    return $pos;
+}
+
+sub _emit_cmd_uint_uint {
+    my ($obj, $cmd, @data) = @_;
+    my $pos = write_uint8($cmd);
+    write_uint32(shift @data);
+    write_uint32(shift @data);
+    return $pos;
+}
+
+# TODO replace with proper code gen from an instruction spec at some point
+BEGIN {
+    for (["addconst", "uint_int"],
+         ["addrel", "uint_uint"],
+         ["subconst", "uint_int"],
+         ["subrel", "uint_uint"],
+         ["movconst", "uint_int"],
+         ["movrel", "uint_uint"],
+         ["mulconst", "uint_int"],
+         ["mulrel", "uint_uint"],
+         ["jumpz", "uint_uint"],
+    ) {
+        my ($name, $types) = @$_;
+        my $caps = uc($name);
+        my $code = qq{
+            sub emit_$name (\$\$) {
+                my (\$obj, \@data) = \&intuit_params;
+                return \$obj->_emit_cmd_$types(IC_$caps, \@data);
+            }
+            push \@EXPORT_OK, 'emit_$name';
+            1
+        };
+        eval $code or die "Failed to eval code: $@";
+    }
+}
+
 sub emit_padding () {
     my ($obj, @data) = &intuit_params;
     return $obj->write_uint8(IC_PADDING);
 }
 
-sub emit_addconst ($$) {
-    my ($obj, @data) = &intuit_params;
-    my $pos = write_uint8(IC_ADDCONST);
-    write_uint32(shift @data);
-    write_int32(shift @data);
-    return $pos;
-}
-
-sub emit_addrel ($$) {
-    my ($obj, @data) = &intuit_params;
-    my $pos = write_uint8(IC_ADDREL);
-    write_uint32(shift @data);
-    write_uint32(shift @data);
-    return $pos;
-}
-
-sub emit_subconst ($$) {
-    my ($obj, @data) = &intuit_params;
-    my $pos = write_uint8(IC_SUBCONST);
-    write_uint32(shift @data);
-    write_int32(shift @data);
-    return $pos;
-}
-
-sub emit_subrel ($$) {
-    my ($obj, @data) = &intuit_params;
-    my $pos = write_uint8(IC_SUBREL);
-    write_uint32(shift @data);
-    write_uint32(shift @data);
-    return $pos;
-}
-
-sub emit_movconst ($$) {
-    my ($obj, @data) = &intuit_params;
-    my $pos = write_uint8(IC_MOVCONST);
-    write_uint32(shift @data);
-    write_int32(shift @data);
-    return $pos;
-}
-
-sub emit_movrel ($$) {
-    my ($obj, @data) = &intuit_params;
-    my $pos = write_uint8(IC_MOVREL);
-    write_uint32(shift @data);
-    write_uint32(shift @data);
-    return $pos;
-}
-
 sub emit_jump ($) {
     my ($obj, @data) = &intuit_params;
-    my $pos = write_uint8(IC_JUMP);
-    write_uint32(shift @data);
-    return $pos;
-}
-
-sub emit_jumpz ($$) {
-    my ($obj, @data) = &intuit_params;
-    my $pos = write_uint8(IC_JUMPZ);
-    write_uint32(shift @data);
-    write_uint32(shift @data);
-    return $pos;
+    return $obj->_emit_cmd_uint(IC_JUMP, @data);
 }
 
 sub emit_print ($) {
     my ($obj, @data) = &intuit_params;
-    my $pos = write_uint8(IC_PRINT);
-    write_uint32(shift @data);
-    return $pos;
+    return $obj->_emit_cmd_uint(IC_PRINT, @data);
 }
 
 sub emit_exit () {

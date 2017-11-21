@@ -72,6 +72,8 @@ typedef enum interpreter_command {
     IC_SUBREL,
     IC_MOVCONST,
     IC_MOVREL,
+    IC_MULCONST,
+    IC_MULREL,
     IC_JUMP,
     IC_JUMPZ,
     IC_PRINT,
@@ -121,7 +123,8 @@ execute(interpreter_state_t *interp)
     // todo consider registers?
     static void* dispatch_table[20] = {
         &&ic_padding, &&ic_addconst, &&ic_addrel, &&ic_subconst, &&ic_subrel,
-        &&ic_movconst, &&ic_movrel, &&ic_jump, &&ic_jumpz, &&ic_print, &&ic_exit
+        &&ic_movconst, &&ic_movrel, &&ic_mulconst, &&ic_mulrel,
+        &&ic_jump, &&ic_jumpz, &&ic_print, &&ic_exit
     };
 
     #define DISPATCH() goto *dispatch_table[bytecode[ipos++]]
@@ -165,6 +168,18 @@ execute(interpreter_state_t *interp)
             READ_UINT(srcptr, bytecode, ipos);
             TRACE("movrel %u %u\n", dstptr, srcptr);
             memory[dstptr] = memory[srcptr];
+            DISPATCH();
+        ic_mulconst:
+            READ_UINT(dstptr, bytecode, ipos);
+            READ_INT(data, bytecode, ipos);
+            TRACE("mulconst %u %i\n", dstptr, data);
+            memory[dstptr] *= data;
+            DISPATCH();
+        ic_mulrel:
+            READ_UINT(dstptr, bytecode, ipos);
+            READ_UINT(srcptr, bytecode, ipos);
+            TRACE("mulrel %u %u\n", dstptr, srcptr);
+            memory[dstptr] *= memory[srcptr];
             DISPATCH();
         ic_jump:
             READ_UINT(dstptr, bytecode, ipos);
