@@ -1,23 +1,24 @@
-LDFLAGS += -ggdb3
-CCFLAGS += -ggdb3
-CCFLAGS += -O2
+TARGET = interp
+LIBS = -lm -ggdb3
+CC = gcc
+CFLAGS = -O2 -Wall -ggdb3
 
-SOURCES=interp.c
-OBJECTS=$(patsubst %.c, %.o, $(SOURCES))
+.PHONY: default all clean
 
-all: interp
+default: $(TARGET)
+all: default
 
-%.o:
-	$(CC) -o $@ -c $*.c $(CCFLAGS)
+OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
+HEADERS = $(wildcard *.h)
 
-interp: $(OBJECTS)
-	$(CC) $(CCFLAGS) $(OBJECTS) -o $@ $(LDFLAGS)
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+.PRECIOUS: $(TARGET) $(OBJECTS)
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) -Wall $(LIBS) -o $@
 
 clean:
-	@rm -f *~ core *.o *.so
-
-realclean: clean
-	@rm interp
-
-.PHONY: all clean realclean
-
+	-rm -f *.o
+	-rm -f $(TARGET)
