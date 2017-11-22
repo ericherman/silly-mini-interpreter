@@ -72,7 +72,7 @@ read_32bit_int(const uint8_t *data)
     return ((int32_t)data[0]) | ((int32_t)data[1] << 8) | ((int32_t)data[2] << 16) | ((int32_t)data[3] << 24);
 }
 // Assumes little endian:
-#define READ_INT(out, bytecode, pos) STMT_START {out = *(int32_t *)(bytecode+pos); pos += 4; } STMT_END
+#define READ_INT(out, bytecode, pos) STMT_START {out = *(int32_t *)(bytecode+pos); pos += sizeof(int32_t); } STMT_END
 //#define READ_INT(out, bytecode, pos) STMT_START {out = read_32bit_int(bytecode+pos); pos += 4; } STMT_END
 
 static inline uint32_t
@@ -81,7 +81,7 @@ read_32bit_uint(const uint8_t *data)
     return ((uint32_t)data[0]) | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
 }
 // Assumes little endian:
-#define READ_UINT(out, bytecode, pos) STMT_START {out = *(uint32_t *)(bytecode+pos); pos += 4; } STMT_END
+#define READ_UINT(out, bytecode, pos) STMT_START {out = *(uint32_t *)(bytecode+pos); pos += sizeof(uint32_t); } STMT_END
 //#define READ_UINT(out, bytecode, pos) STMT_START {out = read_32bit_uint(bytecode+pos); pos += 4; } STMT_END
 
 void
@@ -97,7 +97,7 @@ execute(interpreter_state_t *interp)
     /* First read memory size */
     size_t ipos = 0;
     const uint32_t memsize = read_32bit_uint(bytecode);
-    ipos += 4;
+    ipos += sizeof(uint32_t);
 
     const uint32_t program_start_offset = ipos;
 
